@@ -25,6 +25,30 @@ async function run() {
     const orderCollection = client.db("restaurant-server").collection("orders");
     const userCollection = client.db("restaurant-server").collection("users");
 
+    // jwt related api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
+    // middlewares
+    const verifyToken = (req, res, next) => {
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "forbidden access" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+        if (error) {
+          return res.status(401).send({ message: "forbidden access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
+
     //create user
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -45,13 +69,6 @@ async function run() {
       const email = req.query.email;
       const name = req.query.name;
 
-      if (name) {
-        const regEx = new RegExp(name, "i");
-        const result = foodCollection.find({ name: name });
-        const foods = await result.toArray();
-        res.send(foods);
-      }
-
       if (email) {
         const result = foodCollection.find({ email: email });
         const foods = await result.toArray();
@@ -60,6 +77,14 @@ async function run() {
         const cursor = foodCollection.find();
         const foods = await cursor.toArray();
         res.send(foods);
+      }
+
+      if (name) {
+        const regex = new RegExp(name, "i");
+        const result = foodCollection
+          .find({ name: { $regex: regex } })
+          .toArray();
+        res.send(result);
       }
     });
 
@@ -75,6 +100,19 @@ async function run() {
     app.post("/foods", async (req, res) => {
       const food = req.body;
       const result = await foodCollection.insertOne(food);
+      res.send(result);
+    });
+
+    // Update a food
+    app.put("/foods/:id", async (req, res) => {
+      const id = req.params.id;
+      const food = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: food,
+      };
+      const result = await foodCollection.updateOne(filter, updateDoc, options);
       res.send(result);
     });
   } finally {
