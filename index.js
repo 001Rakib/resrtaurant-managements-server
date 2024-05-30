@@ -67,7 +67,15 @@ async function run() {
     // Get all foods
     app.get("/foods", async (req, res) => {
       const email = req.query.email;
-      const name = req.query.name;
+      // const name = req.query.name;
+
+      // if (name) {
+      //   const regex = new RegExp(name, "i");
+      //   const result = foodCollection
+      //     .find({ name: { $regex: regex } })
+      //     .toArray();
+      //   res.send(result);
+      // }
 
       if (email) {
         const result = foodCollection.find({ email: email });
@@ -77,14 +85,6 @@ async function run() {
         const cursor = foodCollection.find();
         const foods = await cursor.toArray();
         res.send(foods);
-      }
-
-      if (name) {
-        const regex = new RegExp(name, "i");
-        const result = foodCollection
-          .find({ name: { $regex: regex } })
-          .toArray();
-        res.send(result);
       }
     });
 
@@ -114,6 +114,46 @@ async function run() {
       };
       const result = await foodCollection.updateOne(filter, updateDoc, options);
       res.send(result);
+
+      // Delete a food
+      app.delete("/foods/:id", async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await foodCollection.deleteOne(query);
+        res.send(result);
+      });
+
+      // Get all orders
+      app.get("/orders", async (req, res) => {
+        const query = {};
+        const cursor = orderCollection.find(query);
+        const orders = await cursor.toArray();
+        res.send(orders);
+      });
+
+      // Get orders by email
+      app.get("/orders/:email", async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email };
+        const cursor = orderCollection.find(query);
+        const orders = await cursor.toArray();
+        res.send(orders);
+      });
+
+      // Add an order
+      app.post("/orders", async (req, res) => {
+        const order = req.body;
+        const result = await orderCollection.insertOne(order);
+        res.send(result);
+      });
+
+      // Delete an order
+      app.delete("/orders/:id", async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await orderCollection.deleteOne(query);
+        res.send(result);
+      });
     });
   } finally {
     // await client.close();
