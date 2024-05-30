@@ -39,6 +39,14 @@ async function run() {
         res.send(foods);
       }
     });
+
+    // Get single food
+    app.get("/foods/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const food = await foodCollection.findOne(query);
+      res.send(food);
+    });
   } finally {
     // await client.close();
   }
