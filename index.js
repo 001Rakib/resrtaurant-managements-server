@@ -13,8 +13,6 @@ app.use(express.json());
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.8wqvy9o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
 
@@ -50,7 +48,7 @@ async function run() {
     };
 
     //create user
-    app.post("/users", async (req, res) => {
+    app.post("/users", verifyToken, async (req, res) => {
       const user = req.body;
       // insert user email if the the user does not exists
       const query = { email: user.email };
@@ -63,19 +61,15 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+    //get users
+    app.get("/users", verifyToken, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
 
     // Get all foods
     app.get("/foods", async (req, res) => {
       const email = req.query.email;
-      // const name = req.query.name;
-
-      // if (name) {
-      //   const regex = new RegExp(name, "i");
-      //   const result = foodCollection
-      //     .find({ name: { $regex: regex } })
-      //     .toArray();
-      //   res.send(result);
-      // }
 
       if (email) {
         const result = foodCollection.find({ email: email });
@@ -97,14 +91,14 @@ async function run() {
     });
 
     // Add a new food
-    app.post("/foods", async (req, res) => {
+    app.post("/foods", verifyToken, async (req, res) => {
       const food = req.body;
       const result = await foodCollection.insertOne(food);
       res.send(result);
     });
 
     // Update a food
-    app.put("/foods/:id", async (req, res) => {
+    app.patch("/foods/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const food = req.body;
       const filter = { _id: new ObjectId(id) };
@@ -114,46 +108,43 @@ async function run() {
       };
       const result = await foodCollection.updateOne(filter, updateDoc, options);
       res.send(result);
+    });
 
-      // Delete a food
-      app.delete("/foods/:id", async (req, res) => {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await foodCollection.deleteOne(query);
-        res.send(result);
-      });
+    // Delete a food
+    app.delete("/foods/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodCollection.deleteOne(query);
+      res.send(result);
+    });
 
-      // Get all orders
-      app.get("/orders", async (req, res) => {
-        const query = {};
-        const cursor = orderCollection.find(query);
-        const orders = await cursor.toArray();
-        res.send(orders);
-      });
+    // Add an order
+    app.post("/orders", async (req, res) => {
+      const order = req.body;
+      const result = await orderCollection.insertOne(order);
+      res.send(result);
+    });
 
-      // Get orders by email
-      app.get("/orders/:email", async (req, res) => {
-        const email = req.params.email;
-        const query = { email: email };
-        const cursor = orderCollection.find(query);
-        const orders = await cursor.toArray();
-        res.send(orders);
-      });
+    // Get all orders
+    app.get("/orders", verifyToken, async (req, res) => {
+      const orders = await orderCollection.find().toArray();
+      res.send(orders);
+    });
 
-      // Add an order
-      app.post("/orders", async (req, res) => {
-        const order = req.body;
-        const result = await orderCollection.insertOne(order);
-        res.send(result);
-      });
+    // Get orders by email
+    app.get("/orders/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const orders = await orderCollection.find(query).toArray();
+      res.send(orders);
+    });
 
-      // Delete an order
-      app.delete("/orders/:id", async (req, res) => {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await orderCollection.deleteOne(query);
-        res.send(result);
-      });
+    // Delete an order
+    app.delete("/orders/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await orderCollection.deleteOne(query);
+      res.send(result);
     });
   } finally {
     // await client.close();
